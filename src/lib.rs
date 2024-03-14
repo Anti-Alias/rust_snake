@@ -4,6 +4,7 @@ pub struct Board {
     height: u32,
     snake: Snake,
     food: Food,
+    state: GameState,
 }
 
 impl Board {
@@ -16,6 +17,7 @@ impl Board {
             height,
             snake,
             food,
+            state: GameState::Running,
         }
     }
 
@@ -39,6 +41,10 @@ impl Board {
         if let Some(index) = self.index_of_pos(food_pos) {
             frame_buffer[index] = palette.food_char;
         }
+    }
+
+    pub fn update(&mut self) -> GameState {
+        self.state
     }
 
     /// Width and height of board.
@@ -112,4 +118,10 @@ impl Default for CharPalette {
             food_char: 'F',
         }
     }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub enum GameState {
+    Running,
+    Dead,
 }
