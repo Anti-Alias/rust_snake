@@ -11,8 +11,6 @@ cargo run
 ```
 
 ## To Build:
-* Install Rust and Cargo using the instructions outlined [here](https://doc.rust-lang.org/cargo/getting-started/installation.html).
-* Run the application using the command:
 ```sh
 cargo build --release
 ```
