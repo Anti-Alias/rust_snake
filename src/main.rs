@@ -7,7 +7,7 @@ use crossterm::terminal::{Clear, ClearType};
 use crossterm::QueueableCommand;
 use snake::{Board, CharPalette, Input, Direction, Food, Snake, State, Vec2};
 
-const SLEEP_TIME: Duration = Duration::from_millis(100);
+const SLEEP_TIME: Duration = Duration::from_millis(150);
 const BOARD_WIDTH: u32 = 31;
 const BOARD_HEIGHT: u32 = 21;
 
@@ -45,7 +45,10 @@ fn print_board(board: &mut Board, frame_buffer: &mut [char]) {
 }
 
 fn update_board(board: &mut Board) {
-    let input = read_keyboard_input();
+    let mut input = None;
+    while let Some(inp) = read_keyboard_input() {
+        input = Some(inp);
+    }
     board.update(input);
 }
 
@@ -53,14 +56,14 @@ fn read_keyboard_input() -> Option<Input> {
     if poll(Duration::ZERO).unwrap() {
         match read().unwrap() {
             Event::Key(key_event) => match key_event {
-                KeyEvent { code: KeyCode::Up, kind: KeyEventKind::Press, .. } => return Some(Input::FaceN),
-                KeyEvent { code: KeyCode::Down, kind: KeyEventKind::Press, .. } => return Some(Input::FaceS),
-                KeyEvent { code: KeyCode::Right, kind: KeyEventKind::Press, .. } => return Some(Input::FaceE),
-                KeyEvent { code: KeyCode::Left, kind: KeyEventKind::Press, .. } => return Some(Input::FaceW),
-                KeyEvent { code: KeyCode::Char('w'), kind: KeyEventKind::Press, .. } => return Some(Input::FaceN),
-                KeyEvent { code: KeyCode::Char('s'), kind: KeyEventKind::Press, .. } => return Some(Input::FaceS),
-                KeyEvent { code: KeyCode::Char('d'), kind: KeyEventKind::Press, .. } => return Some(Input::FaceE),
-                KeyEvent { code: KeyCode::Char('a'), kind: KeyEventKind::Press, .. } => return Some(Input::FaceW),
+                KeyEvent { code: KeyCode::Up, kind: KeyEventKind::Press, .. } => return Some(Input::Face(Direction::N)),
+                KeyEvent { code: KeyCode::Down, kind: KeyEventKind::Press, .. } => return Some(Input::Face(Direction::S)),
+                KeyEvent { code: KeyCode::Right, kind: KeyEventKind::Press, .. } => return Some(Input::Face(Direction::E)),
+                KeyEvent { code: KeyCode::Left, kind: KeyEventKind::Press, .. } => return Some(Input::Face(Direction::W)),
+                KeyEvent { code: KeyCode::Char('w'), kind: KeyEventKind::Press, .. } => return Some(Input::Face(Direction::N)),
+                KeyEvent { code: KeyCode::Char('s'), kind: KeyEventKind::Press, .. } => return Some(Input::Face(Direction::S)),
+                KeyEvent { code: KeyCode::Char('d'), kind: KeyEventKind::Press, .. } => return Some(Input::Face(Direction::E)),
+                KeyEvent { code: KeyCode::Char('a'), kind: KeyEventKind::Press, .. } => return Some(Input::Face(Direction::W)),
                 KeyEvent { code: KeyCode::Char('q'), kind: KeyEventKind::Press, .. } => return Some(Input::Quit),
                 KeyEvent { code: KeyCode::Char('r'), kind: KeyEventKind::Press, .. } => return Some(Input::Retry),
                 _ => {}

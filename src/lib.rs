@@ -1,4 +1,5 @@
-use std::ops::Add;
+use std::ops::{Add, Sub};
+use rand::prelude::*;
 
 const GAMEOVER_TEXT_LINE_1: &str = "Game Over";
 const GAMEOVER_TEXT_LINE_2: &str = "Gabe would have";
@@ -96,25 +97,28 @@ impl Board {
     }
 
     fn update_running(&mut self, input: Option<Input>) {
-        match input {
-            Some(Input::FaceN) => self.snake.direction = Direction::N,
-            Some(Input::FaceS) => self.snake.direction = Direction::S,
-            Some(Input::FaceE) => self.snake.direction = Direction::E,
-            Some(Input::FaceW) => self.snake.direction = Direction::W,
-            _ => {}
+
+        // Controls snake direction
+        if let Some(Input::Face(direction)) = input {
+            if direction.reverse() != self.snake.direction {
+                self.snake.direction = direction;
+            }
         }
 
-        // Moves snake
-        let snake_head_pos = &mut self.snake.positions[0];
-        *snake_head_pos = *snake_head_pos + self.snake.direction.to_delta();
-        for i in 1..self.snake.positions.len()-1 {
-            self.snake.positions[i] = self.snake.positions[i-1];
-        }
-
-        // Checks if snake is out of bounds or colliding with itself
-        let snake_head_pos = self.snake.positions[0];
-        if !self.in_bounds(snake_head_pos) {
+        // Updates snake
+        self.snake.update();
+        let snake_head_pos = self.snake.head();
+        if !self.in_bounds(snake_head_pos) || self.snake.is_colliding_self() {
             self.state = State::GameOver;
+            return;
+        }
+        if snake_head_pos == self.food.position {
+            self.snake.grow();
+            let mut rng = thread_rng();
+            self.food.position = Vec2 {
+                x: (rng.gen::<u32>() % self.width) as i32,
+                y: (rng.gen::<u32>() % self.height) as i32,
+            };
         }
     }
 
@@ -126,6 +130,7 @@ impl Board {
         }
     }
 
+    // Restores game back to initial state after a game over.
     fn retry(&mut self) {
         self.state = State::Running;
         self.snake.positions.clear();
@@ -169,6 +174,34 @@ impl Snake {
             direction,
         }
     }
+
+    fn update(&mut self) {
+        for i in (1..self.positions.len()).rev() {
+            self.positions[i] = self.positions[i-1];
+        }
+        let snake_head_pos = &mut self.positions[0];
+        *snake_head_pos = *snake_head_pos + self.direction.to_delta();
+    }
+
+    fn is_colliding_self(&self) -> bool {
+        let mut positions = self.positions.iter();
+        let head = positions.next().unwrap();
+        for segment in positions {
+            if segment == head {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn head(&self) -> Vec2 {
+        self.positions[0]
+    }
+
+    fn grow(&mut self) {
+        let tail_pos = self.positions[self.positions.len() - 1];
+        self.positions.push(tail_pos);
+    }
 }
 
 /// Food game object.
@@ -200,17 +233,36 @@ impl Add for Vec2 {
     }
 }
 
+impl Sub for Vec2 {
+    type Output = Vec2;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
 /// Direction the snake is facing.
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Direction { N, S, E, W }
 
 impl Direction {
-    pub fn to_delta(self) -> Vec2 {
+    fn to_delta(self) -> Vec2 {
         match self {
             Direction::N => Vec2 { x: 0, y: -1 },
             Direction::S => Vec2 { x: 0, y: 1 },
             Direction::E => Vec2 { x: 1, y: 0 },
             Direction::W => Vec2 { x: -1, y: 0 },
+        }
+    }
+
+    fn reverse(self) -> Self {
+        match self {
+            Direction::N => Direction::S,
+            Direction::S => Direction::N,
+            Direction::E => Direction::W,
+            Direction::W => Direction::E,
         }
     }
 }
@@ -246,10 +298,7 @@ pub enum State {
 /// User input.
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Input {
-    FaceN,
-    FaceS,
-    FaceE,
-    FaceW,
+    Face(Direction),
     Retry,
     Quit,
 }
